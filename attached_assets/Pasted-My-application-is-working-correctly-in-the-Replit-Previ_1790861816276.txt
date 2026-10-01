@@ -1,0 +1,53 @@
+My application is working correctly in the Replit Preview, but publishing/republishing currently fails.
+
+I want to deploy this existing Blockchain Supply Chain application publicly at ZERO COST if the current Replit free publishing/deployment option supports it.
+
+Do NOT rebuild the application.
+Do NOT change the existing architecture.
+Do NOT remove any existing features.
+Do NOT replace the Express/TypeScript + PostgreSQL + Hardhat implementation.
+
+First diagnose the deployment failure.
+
+Please:
+
+1. Inspect the current project and deployment configuration.
+2. Inspect the exact reason why the current "Republish" operation failed.
+3. Check the current .replit configuration, package.json scripts, server configuration, and deployment configuration.
+4. Verify that the production server binds to 0.0.0.0 and uses the correct PORT environment variable.
+5. Verify that the frontend production build is generated correctly.
+6. Verify that the Express backend correctly serves the frontend in production if that is the current architecture.
+7. Check all required environment variables/secrets.
+8. Check whether PostgreSQL is configured correctly for production.
+9. Check whether the local Hardhat blockchain is compatible with deployment.
+
+IMPORTANT:
+The current application uses a local Hardhat blockchain. Do NOT silently replace it with another blockchain.
+
+If the local Hardhat node cannot persist or run correctly in a public deployment, explain the exact problem and propose the simplest ZERO-COST solution that preserves the project's blockchain demonstration.
+
+10. Run the production build.
+11. Run the production server locally using the same command that deployment will use.
+12. Test the health endpoint.
+13. Test login.
+14. Test product tracking.
+15. Test public verification.
+16. Test the existing HNY001 product.
+17. Fix only the deployment-related problems you find.
+
+After fixing the issue, attempt the Replit deployment again.
+
+If Replit's current free plan cannot host this full-stack application for free, DO NOT upgrade anything and DO NOT ask me to pay.
+
+Instead, tell me exactly what prevents free deployment and prepare the project so I can deploy the frontend and backend using free hosting elsewhere.
+
+At the end report:
+
+- Exact cause of the previous deployment failure
+- What you changed
+- Whether Replit free deployment succeeded
+- Public URL if successful
+- Required environment variables
+- Any remaining manual steps
+
+Do not claim deployment succeeded unless you actually verify the public URL.
