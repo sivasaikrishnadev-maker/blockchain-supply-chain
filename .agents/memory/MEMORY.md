@@ -1,0 +1,1 @@
+- [Hardhat CLI in Replit shells](hardhat-cli-telemetry.md) — disable the first-run telemetry prompt for noninteractive Hardhat commands.

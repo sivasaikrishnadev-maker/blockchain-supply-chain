@@ -1,0 +1,28 @@
+kind = "web"
+previewPath = "/"
+title = "Blockchain Supply Chain"
+description = "A full-stack college demonstration app for tracking a product through manufacturer, distributor, and retailer stages, with public QR verification and tamper-evident product records."
+version = "1.0.0"
+id = "artifacts/blockchain-supply-chain"
+router = "path"
+
+[[services]]
+name = "web"
+paths = [ "/" ]
+localPort = 20948
+
+[services.development]
+run = "pnpm --filter @workspace/blockchain-supply-chain run dev"
+
+[services.production]
+build = [ "pnpm", "--filter", "@workspace/blockchain-supply-chain", "run", "build" ]
+serve = "static"
+publicDir = "artifacts/blockchain-supply-chain/dist/public"
+
+[[services.production.rewrites]]
+from = "/*"
+to = "/index.html"
+
+[services.env]
+PORT = "20948"
+BASE_PATH = "/"

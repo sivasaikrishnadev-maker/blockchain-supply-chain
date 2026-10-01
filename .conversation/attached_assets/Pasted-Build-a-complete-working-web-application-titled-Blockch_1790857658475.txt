@@ -1,0 +1,1013 @@
+Build a complete, working web application titled:
+
+# Blockchain-Based Supply Chain Tracking
+
+This is a college Blockchain Technology PBL project. Build the application as a simple but professional full-stack website that can be demonstrated to a college faculty member.
+
+IMPORTANT:
+- Build the entire application, not just a UI prototype.
+- Keep the architecture simple and easy to understand.
+- Prioritize a working end-to-end demo over unnecessary advanced features.
+- Do NOT add AI, IoT, Kafka, Redis, Kubernetes, microservices, Neo4j, payment systems, mobile apps, or complex analytics.
+- Do NOT over-engineer the project.
+- Inspect the project structure before making changes.
+- If something already exists, reuse it instead of creating duplicate files.
+- Run and test the application after implementation.
+- Fix errors before considering the project complete.
+- Do not merely create files and claim completion.
+
+---
+
+# 1. TECHNOLOGY STACK
+
+Use:
+
+Frontend:
+- React
+- Vite
+- Tailwind CSS
+- React Router
+- Axios
+- Lucide React icons
+- QR code library
+
+Backend:
+- Python
+- FastAPI
+- Uvicorn
+- JWT authentication
+- bcrypt/passlib password hashing
+
+Database:
+- MongoDB Atlas
+- PyMongo or Motor
+
+Blockchain:
+- Solidity
+- Hardhat
+- ethers.js
+- Use a simple local Hardhat blockchain for development/demo.
+- Structure the code so a testnet RPC can be configured later through environment variables.
+
+Do NOT introduce additional technologies unless absolutely necessary.
+
+---
+
+# 2. PROJECT PURPOSE
+
+The application tracks a product as it moves through:
+
+Manufacturer
+↓
+Distributor
+↓
+Retailer
+↓
+Customer
+
+The system records important supply-chain events and stores a cryptographic product hash on the blockchain.
+
+The customer can enter a Product ID or scan a QR code to see:
+
+- Product information
+- Current supply-chain status
+- Supply-chain timeline
+- Blockchain transaction information
+- Integrity verification result
+
+The blockchain should be presented as a tamper-evident record of the application's stored supply-chain information.
+
+Do NOT claim that blockchain physically proves that a real-world product is genuine.
+
+---
+
+# 3. USER ROLES
+
+Implement three authenticated roles:
+
+1. Manufacturer
+2. Distributor
+3. Retailer
+
+Customers do NOT need an account.
+
+Customers use the public tracking/verification page.
+
+---
+
+# 4. AUTHENTICATION
+
+Create:
+
+- Login page
+- Simple role-based authentication
+- JWT authentication
+- Password hashing
+- Protected dashboard routes
+
+For the college demonstration, create demo accounts:
+
+Manufacturer:
+email: manufacturer@demo.com
+password: password123
+
+Distributor:
+email: distributor@demo.com
+password: password123
+
+Retailer:
+email: retailer@demo.com
+password: password123
+
+If necessary, automatically seed these accounts when the application starts.
+
+After login, redirect the user to the appropriate dashboard.
+
+Users must only see actions allowed for their role.
+
+---
+
+# 5. MAIN PAGES
+
+Create these pages:
+
+## Public pages
+
+### Home
+Create a professional landing page containing:
+
+- Project title
+- Short explanation
+- "Track Product" button
+- "Verify Product" button
+- Simple explanation of how blockchain is used
+- Supply-chain flow:
+
+Manufacturer → Distributor → Retailer → Customer
+
+- Feature cards:
+  - Blockchain Records
+  - Supply Chain Tracking
+  - QR Verification
+  - Tamper Detection
+
+### Track Product
+Allow anyone to enter a Product ID.
+
+Display:
+
+- Product name
+- Product ID
+- Batch number
+- Category
+- Quantity
+- Manufacturer
+- Current status
+- Supply-chain timeline
+- Blockchain transaction information
+- Integrity status
+
+### Public Verification
+Allow a customer to verify a product.
+
+Route:
+
+/verify/:productId
+
+Display:
+
+- Product details
+- Current status
+- Blockchain hash
+- Current database hash
+- Verification result
+- Supply-chain events
+
+Show:
+
+✓ Record Integrity Verified
+
+when hashes match.
+
+Show:
+
+⚠ Record Has Been Modified
+
+when hashes do not match.
+
+---
+
+# 6. AUTHENTICATED PAGES
+
+Create:
+
+- Login
+- Dashboard
+- Add Product
+- Product Details
+- Manage/Update Product
+
+Use a clean sidebar navigation.
+
+---
+
+# 7. MANUFACTURER DASHBOARD
+
+Display:
+
+- Total Products
+- Products Created
+- Products In Supply Chain
+- Available Products
+
+Provide:
+
+"Add Product"
+
+form with:
+
+- Product Name
+- Product ID
+- Batch Number
+- Category
+- Manufacturing Date
+- Quantity
+- Description
+
+Example:
+
+Product Name:
+Organic Honey
+
+Product ID:
+HNY001
+
+Batch Number:
+HNY-2026-001
+
+Category:
+Food
+
+Quantity:
+100
+
+After submitting:
+
+1. Validate the data.
+2. Save the product in MongoDB.
+3. Set status to:
+
+Created
+
+4. Create the product data hash.
+5. Register the hash on the blockchain.
+6. Store the blockchain transaction hash.
+7. Generate a QR code for the product.
+8. Display successful registration.
+
+Show:
+
+✓ Product Registered Successfully
+
+and:
+
+- Product ID
+- Blockchain Transaction Hash
+- Product Hash
+- QR Code
+
+---
+
+# 8. DISTRIBUTOR DASHBOARD
+
+Distributor should see products assigned/available for distribution.
+
+For a product with status:
+
+Created
+
+provide:
+
+"Receive Product"
+
+This changes status to:
+
+Received by Distributor
+
+Then provide:
+
+"Transfer to Retailer"
+
+This changes status to:
+
+In Transit to Retailer
+
+Each important event should be recorded in the database and blockchain.
+
+---
+
+# 9. RETAILER DASHBOARD
+
+Retailer should see products transferred to them.
+
+When status is:
+
+In Transit to Retailer
+
+provide:
+
+"Receive Product"
+
+Change status to:
+
+Received by Retailer
+
+Then provide:
+
+"Mark Available for Sale"
+
+Change status to:
+
+Available for Sale
+
+Record each important event.
+
+---
+
+# 10. EXACT SUPPLY CHAIN FLOW
+
+Implement exactly this status flow:
+
+Created
+↓
+Received by Distributor
+↓
+In Transit to Retailer
+↓
+Received by Retailer
+↓
+Available for Sale
+
+Do not create unnecessary additional statuses.
+
+Prevent invalid transitions.
+
+For example:
+
+- Retailer cannot receive a product that has not been transferred.
+- Distributor cannot transfer a product that has not been received.
+- Manufacturer cannot perform retailer actions.
+
+---
+
+# 11. DATABASE
+
+Use MongoDB.
+
+Create simple collections:
+
+## Users
+
+Fields:
+
+- _id
+- name
+- email
+- password
+- role
+
+## Products
+
+Fields:
+
+- _id
+- productId
+- productName
+- batchNumber
+- category
+- manufacturingDate
+- quantity
+- description
+- manufacturer
+- currentStatus
+- productHash
+- blockchainHash
+- blockchainTransaction
+- createdAt
+
+## Events
+
+Fields:
+
+- _id
+- productId
+- eventType
+- status
+- actor
+- actorRole
+- timestamp
+- blockchainTransaction
+
+Create a unique constraint/index for productId.
+
+Prevent duplicate Product IDs.
+
+---
+
+# 12. BLOCKCHAIN SMART CONTRACT
+
+Create:
+
+contracts/SupplyChain.sol
+
+Keep the smart contract simple.
+
+Implement:
+
+registerProduct(
+    string productId,
+    string productHash
+)
+
+addEvent(
+    string productId,
+    string eventType,
+    string eventHash
+)
+
+getProduct(
+    string productId
+)
+
+getEvents(
+    string productId
+)
+
+Store:
+
+- Product ID
+- Product hash
+- Event information
+- Timestamp
+
+Emit events when products are registered or supply-chain events are added.
+
+---
+
+# 13. BLOCKCHAIN WORKFLOW
+
+When the manufacturer creates a product:
+
+Product data
+↓
+Generate SHA-256 hash
+↓
+Save product in MongoDB
+↓
+Register product hash on blockchain
+↓
+Save blockchain transaction hash in MongoDB
+
+When a supply-chain event occurs:
+
+Event data
+↓
+Generate hash
+↓
+Store event in MongoDB
+↓
+Record event on blockchain
+↓
+Save blockchain transaction hash
+
+Use environment variables for blockchain configuration.
+
+Never hard-code private keys.
+
+Create:
+
+.env.example
+
+with:
+
+MONGODB_URI=
+JWT_SECRET=
+BLOCKCHAIN_RPC_URL=
+PRIVATE_KEY=
+CONTRACT_ADDRESS=
+
+Do NOT commit real private keys or secrets.
+
+---
+
+# 14. PRODUCT HASH / INTEGRITY VERIFICATION
+
+Create a function that generates a deterministic SHA-256 hash from the important product fields.
+
+When verifying:
+
+1. Retrieve the product from MongoDB.
+2. Recalculate the current product hash.
+3. Retrieve the original blockchain hash.
+4. Compare them.
+
+If they match:
+
+"Record Integrity Verified"
+
+If they do not match:
+
+"Record Has Been Modified"
+
+Clearly explain in the UI:
+
+"Blockchain verification confirms that the stored record matches the blockchain record. It does not independently verify the physical product."
+
+---
+
+# 15. QR CODE
+
+When a manufacturer registers a product:
+
+Generate a QR code containing:
+
+/verify/{productId}
+
+Example:
+
+/verify/HNY001
+
+Display the QR code on the product details page.
+
+Provide:
+
+"Download QR"
+
+button.
+
+A customer scanning the QR code should directly open the public verification page.
+
+---
+
+# 16. PRODUCT TIMELINE
+
+Create a clean visual timeline.
+
+Example:
+
+✓ Product Created
+Manufacturer
+01 Oct 2026
+
+✓ Received by Distributor
+Distributor
+01 Oct 2026
+
+✓ In Transit to Retailer
+Distributor
+02 Oct 2026
+
+✓ Received by Retailer
+Retailer
+03 Oct 2026
+
+✓ Available for Sale
+Retailer
+03 Oct 2026
+
+Each timeline item should show:
+
+- Status
+- Actor
+- Role
+- Date/time
+- Blockchain transaction hash when available
+
+---
+
+# 17. PRODUCT DETAILS PAGE
+
+Display:
+
+Product Name
+Product ID
+Batch Number
+Category
+Quantity
+Manufacturing Date
+Current Status
+Manufacturer
+
+Then show:
+
+## Blockchain Information
+
+- Product Hash
+- Blockchain Hash
+- Transaction Hash
+- Verification Status
+
+Then:
+
+## Supply Chain Timeline
+
+Then:
+
+## QR Code
+
+Add:
+
+"Verify Integrity"
+
+button.
+
+---
+
+# 18. DASHBOARD DESIGN
+
+Create a professional but simple dashboard.
+
+Use:
+
+- Sidebar
+- Top navigation
+- Cards
+- Tables
+- Status badges
+- Buttons
+- Timeline
+- QR card
+
+Use a clean modern color scheme suitable for a college project.
+
+Do not create excessive animations.
+
+Make the website responsive for:
+
+- Desktop
+- Tablet
+- Mobile
+
+---
+
+# 19. NAVIGATION
+
+Public navigation:
+
+Home
+Track Product
+Verify Product
+Login
+
+After login:
+
+Dashboard
+Products
+Add Product
+Track
+Logout
+
+Show navigation based on role.
+
+---
+
+# 20. API ENDPOINTS
+
+Implement simple FastAPI endpoints.
+
+Authentication:
+
+POST /api/auth/login
+
+Products:
+
+POST /api/products
+GET /api/products
+GET /api/products/{productId}
+
+Supply-chain actions:
+
+POST /api/products/{productId}/receive
+POST /api/products/{productId}/transfer
+POST /api/products/{productId}/retailer-receive
+POST /api/products/{productId}/available
+
+Events:
+
+GET /api/products/{productId}/events
+
+Verification:
+
+GET /api/products/{productId}/verify
+
+Health:
+
+GET /api/health
+
+Use appropriate HTTP status codes and error messages.
+
+---
+
+# 21. ERROR HANDLING
+
+Handle:
+
+- Invalid login
+- Duplicate Product ID
+- Missing fields
+- Invalid Product ID
+- Unauthorized actions
+- Invalid status transitions
+- Database connection failure
+- Blockchain transaction failure
+- Verification failure
+
+Display user-friendly error messages.
+
+Do not expose passwords, private keys, or sensitive information.
+
+---
+
+# 22. DEMO DATA
+
+Create one demo product:
+
+Product:
+Organic Honey
+
+Product ID:
+HNY001
+
+Batch:
+HNY-2026-001
+
+Category:
+Food
+
+Quantity:
+100
+
+Manufacturer:
+Demo Manufacturer
+
+Use this product to demonstrate the complete workflow.
+
+If possible, seed it only when the database is empty so existing data is not overwritten.
+
+---
+
+# 23. PROJECT STRUCTURE
+
+Use a clean structure similar to:
+
+frontend/
+  src/
+    components/
+    pages/
+    services/
+    context/
+    App.jsx
+    main.jsx
+
+backend/
+  app/
+    main.py
+    database.py
+    models/
+    routes/
+    services/
+    auth/
+    blockchain/
+
+blockchain/
+  contracts/
+  scripts/
+  test/
+  hardhat.config.js
+
+README.md
+.env.example
+
+Adjust the exact structure if required by Replit, but keep frontend, backend, and blockchain clearly separated.
+
+---
+
+# 24. FRONTEND-BACKEND CONNECTION
+
+The React frontend must communicate with FastAPI using Axios.
+
+Do not leave fake/mock data in the final application.
+
+Dashboard statistics, products, events, tracking, and verification should come from the backend/database.
+
+Use an environment variable for the backend API URL.
+
+---
+
+# 25. BLOCKCHAIN DEVELOPMENT
+
+Set up Hardhat.
+
+Create:
+
+- Smart contract
+- Deployment script
+- Basic contract test
+
+Use a local Hardhat network for development.
+
+Create an easy deployment command.
+
+Example commands should be documented in README:
+
+npm install
+
+npx hardhat compile
+
+npx hardhat node
+
+npx hardhat run scripts/deploy.js --network localhost
+
+Do not make blockchain setup unnecessarily complicated.
+
+---
+
+# 26. TESTING
+
+After implementation, actually test:
+
+1. Application starts.
+2. Frontend loads.
+3. Backend starts.
+4. MongoDB connection works.
+5. Login works.
+6. Manufacturer can create a product.
+7. Product appears in MongoDB.
+8. Blockchain registration works.
+9. Transaction hash is saved.
+10. Distributor can receive product.
+11. Distributor can transfer product.
+12. Retailer can receive product.
+13. Retailer can mark product available.
+14. Events appear in timeline.
+15. QR code works.
+16. Public tracking works.
+17. Public verification works.
+18. Hash verification works.
+19. Invalid actions are rejected.
+20. Responsive UI works.
+
+Fix all errors you encounter.
+
+---
+
+# 27. IMPORTANT SIMPLIFICATION RULE
+
+This is a college PBL.
+
+Do NOT add:
+
+- AI/ML
+- IoT sensors
+- Real logistics APIs
+- GPS tracking
+- Kafka
+- Redis
+- Kubernetes
+- Microservices
+- Neo4j
+- Complex graph databases
+- Payment gateway
+- Mobile application
+- Facial recognition
+- Chatbot
+- Complex analytics
+- Advanced admin panel
+- Complex smart-contract tokenomics
+
+The goal is a reliable, understandable blockchain supply-chain demonstration.
+
+---
+
+# 28. README
+
+Create a complete README containing:
+
+1. Project Title
+2. Problem Statement
+3. Objective
+4. Proposed Solution
+5. Features
+6. User Roles
+7. Technology Stack
+8. System Architecture
+9. Supply Chain Workflow
+10. Blockchain Workflow
+11. Database Structure
+12. Installation
+13. Environment Variables
+14. How to Run Frontend
+15. How to Run Backend
+16. How to Run Blockchain
+17. Demo Credentials
+18. API Endpoints
+19. Testing
+20. Limitations
+21. Future Enhancements
+
+Keep explanations easy for a college student to understand.
+
+---
+
+# 29. FINAL UI REQUIREMENTS
+
+The final website should look like a real software project, not a basic college HTML page.
+
+Use:
+
+- Clean typography
+- Consistent spacing
+- Professional cards
+- Modern dashboard
+- Clear status badges
+- Supply-chain timeline
+- Blockchain information cards
+- QR verification section
+- Responsive layout
+- Loading indicators
+- Empty states
+- Error states
+- Success notifications
+
+Keep the design simple and professional.
+
+---
+
+# 30. FINAL DEMO SCENARIO
+
+The complete demo should work like this:
+
+1. Open Home page.
+2. Login as Manufacturer.
+3. Add Organic Honey HNY001.
+4. Product is registered.
+5. Blockchain transaction is generated.
+6. QR code is generated.
+7. Logout.
+8. Login as Distributor.
+9. Receive HNY001.
+10. Transfer HNY001 to Retailer.
+11. Logout.
+12. Login as Retailer.
+13. Receive HNY001.
+14. Mark HNY001 as Available for Sale.
+15. Logout.
+16. Open Track Product.
+17. Search HNY001.
+18. Show complete supply-chain timeline.
+19. Scan/open QR code.
+20. Open public verification page.
+21. Show blockchain information.
+22. Click Verify Integrity.
+23. Display:
+
+✓ Record Integrity Verified
+
+This entire workflow must work without manually editing database records.
+
+---
+
+# 31. FINAL REQUIREMENT
+
+Before saying the project is complete:
+
+- Run the frontend.
+- Run the backend.
+- Test the main API endpoints.
+- Compile the smart contract.
+- Deploy the contract locally.
+- Test blockchain interaction.
+- Test login.
+- Test product creation.
+- Test all supply-chain transitions.
+- Test public tracking.
+- Test QR verification.
+- Test integrity verification.
+- Fix errors.
+
+If something cannot be configured automatically because Replit requires a secret or external service, clearly identify the exact environment variable or manual step required.
+
+Do not replace working functionality with fake buttons or placeholder responses.
+
+At the end, provide:
+
+1. Project structure
+2. How to run the complete application
+3. Required environment variables
+4. Demo credentials
+5. Blockchain deployment instructions
+6. What was implemented
+7. Any remaining manual configuration
+8. Any known limitations
+
+Build the complete working project now.
