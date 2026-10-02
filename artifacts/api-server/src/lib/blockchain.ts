@@ -42,21 +42,38 @@ let provider: JsonRpcProvider | undefined;
 let supplyChain: SupplyChainContract | undefined;
 
 /**
+ * Has the operator explicitly accepted an ephemeral, in-memory local chain?
+ *
+ * `BLOCKCHAIN_ALLOW_LOCAL_CHAIN=true` is the free-tier opt-in: the hosted
+ * service starts its own Hardhat node (see `scripts/start.mjs`) and therefore
+ * has no need for a funded wallet. It is a deliberate acknowledgement that
+ * ledger history is rebuilt from PostgreSQL on every restart, so it is checked
+ * separately from `NODE_ENV` rather than inferred from it.
+ */
+function isLocalChainAllowed(): boolean {
+  return process.env.BLOCKCHAIN_ALLOW_LOCAL_CHAIN === "true";
+}
+
+/**
  * Resolve the JSON-RPC endpoint.
  *
  * `BLOCKCHAIN_RPC_URL` is the production configuration. When it is not set the
  * application falls back to a local Hardhat node on 127.0.0.1:8545, which only
  * works when that node is running as a managed child process (see
- * `scripts/start.mjs`). Production deployments should always set the variable.
+ * `scripts/start.mjs`).
+ *
+ * Falling back is allowed in production only when local-chain mode was
+ * explicitly opted into. Without that opt-in the guard still fails closed, so a
+ * misconfigured deployment can never silently run against an ephemeral ledger.
  */
 function resolveRpcUrl(): string {
   const rpcUrl = process.env.BLOCKCHAIN_RPC_URL;
   if (rpcUrl) {
     return rpcUrl;
   }
-  if (process.env.NODE_ENV === "production") {
+  if (process.env.NODE_ENV === "production" && !isLocalChainAllowed()) {
     throw new Error(
-      "BLOCKCHAIN_RPC_URL must be set in production. Refusing to start with the local development chain, whose state is in-memory only and would be lost on every restart.",
+      "BLOCKCHAIN_RPC_URL must be set in production. Refusing to start with the local development chain, whose state is in-memory only and would be lost on every restart. Set BLOCKCHAIN_ALLOW_LOCAL_CHAIN=true to accept the ephemeral chain deliberately.",
     );
   }
   return "http://127.0.0.1:8545";
@@ -87,22 +104,30 @@ export async function initializeBlockchain(): Promise<boolean> {
 
   let signer: Wallet | JsonRpcSigner;
   if (process.env.PRIVATE_KEY) {
+    // An explicit key always wins, so a persistent testnet keeps working even
+    // if BLOCKCHAIN_ALLOW_LOCAL_CHAIN is somehow still set to true.
     signer = new Wallet(process.env.PRIVATE_KEY, provider);
   } else {
     // No private key means we rely on the RPC exposing an unlocked account.
-    // A public testnet never does this, so require the key in production.
-    if (process.env.NODE_ENV === "production") {
+    // Hardhat does this, which is why local-chain mode does not need a wallet.
+    // A public testnet never does, so production without the opt-in still
+    // fails closed rather than silently depending on an unlocked account.
+    if (process.env.NODE_ENV === "production" && !isLocalChainAllowed()) {
       throw new Error(
-        "PRIVATE_KEY must be set in production so the server can sign SupplyChain transactions.",
+        "PRIVATE_KEY must be set in production so the server can sign SupplyChain transactions. Alternatively set BLOCKCHAIN_ALLOW_LOCAL_CHAIN=true to run against the managed local Hardhat node, which signs with its own development accounts and needs no real wallet key.",
       );
     }
     const accounts = (await provider.send("eth_accounts", [])) as string[];
     if (!accounts.length) {
       throw new Error(
-        "The configured blockchain has no unlocked signer. Set PRIVATE_KEY for an external RPC or use the local Hardhat node.",
+        "The configured blockchain has no unlocked signer. Set PRIVATE_KEY for an external RPC, or use the local Hardhat node with BLOCKCHAIN_ALLOW_LOCAL_CHAIN=true.",
       );
     }
     signer = await provider.getSigner(accounts[0]);
+    logger.warn(
+      { signerAddress: accounts[0] },
+      "Using an unlocked account from the RPC node. This is only acceptable for the managed local Hardhat node; it cannot sign on a public network.",
+    );
   }
 
   let address = process.env.CONTRACT_ADDRESS;
