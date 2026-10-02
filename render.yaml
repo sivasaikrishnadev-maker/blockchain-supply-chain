@@ -37,7 +37,6 @@ services:
     # For a graded demonstration triggered on demand, that cold start is usually
     # acceptable; open the app once before you present it.
     autoDeploy: true
-    numRetries: 3
 
     envVars:
       # --- values you control; no secrets in this file ---
