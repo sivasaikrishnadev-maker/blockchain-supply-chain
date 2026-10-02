@@ -76,12 +76,33 @@ async function loadProductDetails(productId: string): Promise<ProductDetails | n
   };
 }
 
+/**
+ * Parse and normalise a `:productId` route parameter.
+ *
+ * Every mutating route used `.parse()`, which threw a raw `ZodError` and
+ * surfaced as an opaque 500. Using `safeParse` returns a 400 with a stable
+ * message for malformed input, which is what a client should see.
+ *
+ * The length cap matters because the value is hashed, stored, and used as a
+ * mapping key on the ledger; an unbounded string would let a caller write
+ * megabytes into the database.
+ */
+const MAX_PRODUCT_ID_LENGTH = 128;
+
+function assertValidProductId(productId: unknown): string {
+  const trimmed = typeof productId === "string" ? productId.trim() : "";
+  if (!trimmed || trimmed.length > MAX_PRODUCT_ID_LENGTH) {
+    throw new HttpError(400, "Enter a valid Product ID.");
+  }
+  return trimmed;
+}
+
 function productIdFrom(request: Request): string {
   const params = GetProductParams.safeParse(request.params);
   if (!params.success) {
     throw new HttpError(400, "Enter a valid Product ID.");
   }
-  return params.data.productId;
+  return assertValidProductId(params.data.productId);
 }
 
 router.get(
@@ -281,7 +302,20 @@ router.get(
       },
       row.manufacturer,
     );
-    const chainProduct = await readProductFromChain(row.productId);
+    let chainProduct: Awaited<ReturnType<typeof readProductFromChain>>;
+    try {
+      chainProduct = await readProductFromChain(row.productId);
+    } catch {
+      // An unreachable chain must not be reported as "Record Has Been
+      // Modified", which would be a false integrity failure. 503 is honest:
+      // the stored record is fine, the comparison could not be performed.
+      res.status(503).json({
+        error:
+          "The integrity check is temporarily unavailable because the ledger could not be reached. Please try again shortly.",
+      });
+      return;
+    }
+
     const verified =
       chainProduct.exists && recalculatedHash === chainProduct.productHash;
     const verification: Verification = {
@@ -302,9 +336,10 @@ router.post(
   authenticate,
   requireRole("distributor"),
   async (req, res): Promise<void> => {
-    const { productId } = DistributorReceiveParams.parse(req.params);
+    const params = DistributorReceiveParams.safeParse(req.params);
+    if (!params.success) throw new HttpError(400, "Enter a valid Product ID.");
     const details = await transitionProduct(
-      productId,
+      assertValidProductId(params.data.productId),
       "Created",
       "Received by Distributor",
       req.authUser!.name,
@@ -319,9 +354,10 @@ router.post(
   authenticate,
   requireRole("distributor"),
   async (req, res): Promise<void> => {
-    const { productId } = DistributorTransferParams.parse(req.params);
+    const params = DistributorTransferParams.safeParse(req.params);
+    if (!params.success) throw new HttpError(400, "Enter a valid Product ID.");
     const details = await transitionProduct(
-      productId,
+      assertValidProductId(params.data.productId),
       "Received by Distributor",
       "In Transit to Retailer",
       req.authUser!.name,
@@ -336,9 +372,10 @@ router.post(
   authenticate,
   requireRole("retailer"),
   async (req, res): Promise<void> => {
-    const { productId } = RetailerReceiveParams.parse(req.params);
+    const params = RetailerReceiveParams.safeParse(req.params);
+    if (!params.success) throw new HttpError(400, "Enter a valid Product ID.");
     const details = await transitionProduct(
-      productId,
+      assertValidProductId(params.data.productId),
       "In Transit to Retailer",
       "Received by Retailer",
       req.authUser!.name,
@@ -353,9 +390,10 @@ router.post(
   authenticate,
   requireRole("retailer"),
   async (req, res): Promise<void> => {
-    const { productId } = MarkProductAvailableParams.parse(req.params);
+    const params = MarkProductAvailableParams.safeParse(req.params);
+    if (!params.success) throw new HttpError(400, "Enter a valid Product ID.");
     const details = await transitionProduct(
-      productId,
+      assertValidProductId(params.data.productId),
       "Received by Retailer",
       "Available for Sale",
       req.authUser!.name,

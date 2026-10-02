@@ -195,6 +195,12 @@ importers:
       express:
         specifier: ^5.2.1
         version: 5.2.1
+      express-rate-limit:
+        specifier: ^8.2.1
+        version: 8.7.0(express@5.2.1)
+      helmet:
+        specifier: ^8.1.0
+        version: 8.3.0
       jsonwebtoken:
         specifier: ^9.0.3
         version: 9.0.3
@@ -232,6 +238,9 @@ importers:
       thread-stream:
         specifier: 3.1.0
         version: 3.1.0
+      tsx:
+        specifier: 'catalog:'
+        version: 4.23.13
 
   artifacts/blockchain-supply-chain:
     dependencies:
@@ -2595,6 +2604,12 @@ packages:
     resolution: {integrity: sha512-9Be3ZoN4LmYR90tUoVu2te2BsbzHfhJyfEiAVfz7N5/zv+jduIfLrV2xdQXOHbaD6KgpGdO9PRPM1Y4Q9QkPkA==}
     engines: {node: ^18.19.0 || >=20.5.0}
 
+  express-rate-limit@8.7.0:
+    resolution: {integrity: sha512-hOwV7WOxXfjRpAM1DSJWZDXx3GhplwD8IfwuwvogD8i1Qnkgosw/H45s4ZnFAUHDAhPjlY9hLBvJhKmGMyY26g==}
+    engines: {node: '>= 16'}
+    peerDependencies:
+      express: '>= 4.11'
+
   express@5.2.1:
     resolution: {integrity: sha512-hIS4idWWai69NezIdRt2xFVofaF4j+6INOpJlVOLDO8zXGpUVEVzIYk12UUi2JzjEzWL3IOAxcTubgz9Po0yXw==}
     engines: {node: '>= 18'}
@@ -2786,6 +2801,10 @@ packages:
     resolution: {integrity: sha512-F/1DnUGPopORZi0ni+CvrCgHQ5FyEAHRLSApuYWMmrbSwoN2Mn/7k+Gl38gJnR7yyDZk6WLXwiGod1JOWNDKGw==}
     hasBin: true
 
+  helmet@8.3.0:
+    resolution: {integrity: sha512-Qgpiaws3Sm30Av8Eah6sjMCZZwjlBu+E68rhpCWBshY1lb09HtLwj5GviX0OyQIn+ulUS0iX0AxN5n3tLZzz1w==}
+    engines: {node: '>=18.0.0'}
+
   help-me@5.0.0:
     resolution: {integrity: sha512-7xgomUX6ADmcYzFik0HzAxh/73YlKR9bmFzf51CZwR+b6YtzU2m0u49hQCqV6SvlqIqsaxovfwdvbnsw3b/zpg==}
 
@@ -2834,6 +2853,10 @@ packages:
 
   io-ts@1.10.4:
     resolution: {integrity: sha512-b23PteSnYXSONJ6JQXRAlvJhuw8KOtkqa87W4wDtvMrud/DTJd5X+NpOOI+O/zZwVq6v0VLAaJ+1EDViKEuN9g==}
+
+  ip-address@10.7.2:
+    resolution: {integrity: sha512-7H/2gFSIitxc0hG3nOI1glS8QLo/EHBFFLk8vEUjXY/xu0AdL8jZ9U1IzO2PUm0d2D/ofQcAifb0g6OBkt8U7w==}
+    engines: {node: '>= 12'}
 
   ipaddr.js@1.9.1:
     resolution: {integrity: sha512-0KI/607xoxSToH7GjN1FfSbLoU0+btTicjsQSWQlh/hZykN8KpmMf7uYwPW3R+akZ6R/w18ZlXSHBYXiYUPO3g==}
@@ -6072,6 +6095,14 @@ snapshots:
       strip-final-newline: 4.0.0
       yoctocolors: 2.2.0
 
+  express-rate-limit@8.7.0(express@5.2.1):
+    dependencies:
+      debug: 4.4.3(supports-color@8.1.1)
+      express: 5.2.1
+      ip-address: 10.7.2
+    transitivePeerDependencies:
+      - supports-color
+
   express@5.2.1:
     dependencies:
       accepts: 2.0.0
@@ -6318,6 +6349,8 @@ snapshots:
 
   he@1.2.0: {}
 
+  helmet@8.3.0: {}
+
   help-me@5.0.0: {}
 
   hmac-drbg@1.0.1:
@@ -6367,6 +6400,8 @@ snapshots:
   io-ts@1.10.4:
     dependencies:
       fp-ts: 1.19.3
+
+  ip-address@10.7.2: {}
 
   ipaddr.js@1.9.1: {}
 

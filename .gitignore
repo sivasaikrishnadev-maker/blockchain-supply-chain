@@ -1,5 +1,26 @@
 # See https://docs.github.com/en/get-started/getting-started-with-git/ignoring-files for more about ignoring files.
 
+# ---------------------------------------------------------------------------
+# Secrets and environment configuration - never commit these
+# ---------------------------------------------------------------------------
+# Real values belong in the hosting platform's environment variable settings
+# (Render Dashboard -> Environment), not in this repository. Only
+# `.env.example` (variable names and safe placeholders) is tracked.
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+*.p12
+*.pfx
+*.keystore
+id_rsa
+id_ed25519
+*_rsa
+secrets.json
+secrets.yaml
+secrets.yml
+
 # compiled output
 dist
 tmp
@@ -10,6 +31,20 @@ out-tsc
 
 # dependencies
 node_modules
+.pnpm-store
+
+# ---------------------------------------------------------------------------
+# Blockchain build output
+# ---------------------------------------------------------------------------
+# Hardhat regenerates these from blockchain/contracts/SupplyChain.sol. The
+# deployment build runs `pnpm run chain:compile`, so the compiled artifact does
+# not need to be in version control. Committing it would also commit ~330 KB of
+# compiler build metadata that is not source.
+blockchain/artifacts
+blockchain/cache
+# Any locally written key material for a persistent testnet deployment.
+blockchain/deployments
+blockchain/.env
 
 # IDEs and editors
 /.idea
@@ -37,6 +72,17 @@ yarn-error.log
 testem.log
 /typings
 
+# Local databases and dumps (the app uses PostgreSQL, but keep local copies out)
+*.sqlite
+*.sqlite3
+*.db
+*.dump
+*.sql.gz
+
+# Logs
+logs
+*.log
+
 # System Files
 .DS_Store
 Thumbs.db
@@ -47,3 +93,10 @@ Thumbs.db
 # Replit
 .cache/
 .local/
+.replit.local
+
+# Render / deployment local state
+.render/
+
+# Hardhat local state. vars.json can hold encrypted keystore secrets.
+.config/

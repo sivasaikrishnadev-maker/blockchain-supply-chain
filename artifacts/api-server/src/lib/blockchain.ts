@@ -1,14 +1,13 @@
 import { readFile } from "node:fs/promises";
-import path from "node:path";
 import {
   Contract,
   ContractFactory,
   JsonRpcProvider,
   Wallet,
   type JsonRpcSigner,
-  type Provider,
 } from "ethers";
 import { logger } from "./logger";
+import { resolveContractArtifactPath } from "./paths";
 
 interface TransactionResponse {
   hash: string;
@@ -42,22 +41,61 @@ interface SupplyChainContract {
 let provider: JsonRpcProvider | undefined;
 let supplyChain: SupplyChainContract | undefined;
 
+/**
+ * Resolve the JSON-RPC endpoint.
+ *
+ * `BLOCKCHAIN_RPC_URL` is the production configuration. When it is not set the
+ * application falls back to a local Hardhat node on 127.0.0.1:8545, which only
+ * works when that node is running as a managed child process (see
+ * `scripts/start.mjs`). Production deployments should always set the variable.
+ */
+function resolveRpcUrl(): string {
+  const rpcUrl = process.env.BLOCKCHAIN_RPC_URL;
+  if (rpcUrl) {
+    return rpcUrl;
+  }
+  if (process.env.NODE_ENV === "production") {
+    throw new Error(
+      "BLOCKCHAIN_RPC_URL must be set in production. Refusing to start with the local development chain, whose state is in-memory only and would be lost on every restart.",
+    );
+  }
+  return "http://127.0.0.1:8545";
+}
+
+/**
+ * Connect to the chain and make sure a SupplyChain contract is available.
+ *
+ * Two supported modes, both driven by environment variables only:
+ *
+ *  - `CONTRACT_ADDRESS` set  -> attach to an already-deployed contract. This is
+ *    the mode to use on a persistent EVM network (e.g. a testnet) so that
+ *    already-recorded products keep their history.
+ *  - `CONTRACT_ADDRESS` unset -> deploy a fresh contract from the compiled
+ *    artifact. Only safe on an ephemeral local chain; `restoreBlockchainState`
+ *    then replays the PostgreSQL records onto the new ledger.
+ */
 export async function initializeBlockchain(): Promise<boolean> {
-  const rpcUrl = process.env.BLOCKCHAIN_RPC_URL || "http://127.0.0.1:8545";
-  provider = new JsonRpcProvider(rpcUrl);
-  const artifactPath = path.resolve(
-    process.cwd(),
-    "../../blockchain/artifacts/contracts/SupplyChain.sol/SupplyChain.json",
-  );
+  const rpcUrl = resolveRpcUrl();
+  provider = new JsonRpcProvider(rpcUrl, undefined, { staticNetwork: true });
+
+  const artifactPath = resolveContractArtifactPath();
   const artifact = JSON.parse(await readFile(artifactPath, "utf8")) as {
     abi: unknown[];
     bytecode: string;
   };
+  logger.info({ artifactPath }, "Loaded compiled SupplyChain contract artifact");
 
   let signer: Wallet | JsonRpcSigner;
   if (process.env.PRIVATE_KEY) {
     signer = new Wallet(process.env.PRIVATE_KEY, provider);
   } else {
+    // No private key means we rely on the RPC exposing an unlocked account.
+    // A public testnet never does this, so require the key in production.
+    if (process.env.NODE_ENV === "production") {
+      throw new Error(
+        "PRIVATE_KEY must be set in production so the server can sign SupplyChain transactions.",
+      );
+    }
     const accounts = (await provider.send("eth_accounts", [])) as string[];
     if (!accounts.length) {
       throw new Error(
@@ -93,7 +131,7 @@ export async function initializeBlockchain(): Promise<boolean> {
     signer,
   ) as unknown as SupplyChainContract;
   logger.info(
-    { contractAddress: address, deployedHere },
+    { contractAddress: address, deployedHere, rpcUrl },
     "SupplyChain contract ready",
   );
   return deployedHere;
@@ -106,13 +144,49 @@ function contract(): SupplyChainContract {
   return supplyChain;
 }
 
+/**
+ * Upper bound on a single ledger read/write.
+ *
+ * `transitionProduct` holds an open database transaction while it awaits the
+ * chain. If the RPC hangs, that transaction keeps a pooled connection checked
+ * out indefinitely and the pool (capped small on a free tier) is exhausted,
+ * turning one unreachable endpoint into a full outage. Failing fast keeps the
+ * existing "no status change was saved" behaviour instead.
+ */
+const RPC_TIMEOUT_MS = Number(process.env.BLOCKCHAIN_TIMEOUT_MS ?? 20_000);
+
+async function withRpcTimeout<T>(
+  operation: Promise<T>,
+  label: string,
+): Promise<T> {
+  let timer: NodeJS.Timeout | undefined;
+  try {
+    return await Promise.race([
+      operation,
+      new Promise<never>((_resolve, reject) => {
+        timer = setTimeout(
+          () => reject(new Error(`The blockchain did not respond within ${RPC_TIMEOUT_MS}ms (${label}).`)),
+          RPC_TIMEOUT_MS,
+        );
+      }),
+    ]);
+  } finally {
+    if (timer) clearTimeout(timer);
+  }
+}
+
 export async function registerProductOnChain(
   productId: string,
   productHash: string,
 ): Promise<string> {
-  const tx = await contract().registerProduct(productId, productHash);
-  await tx.wait();
-  return tx.hash;
+  return withRpcTimeout(
+    (async () => {
+      const tx = await contract().registerProduct(productId, productHash);
+      await tx.wait();
+      return tx.hash;
+    })(),
+    "registerProduct",
+  );
 }
 
 export async function addEventOnChain(
@@ -120,27 +194,40 @@ export async function addEventOnChain(
   eventType: string,
   eventHash: string,
 ): Promise<string> {
-  const tx = await contract().addEvent(productId, eventType, eventHash);
-  await tx.wait();
-  return tx.hash;
+  return withRpcTimeout(
+    (async () => {
+      const tx = await contract().addEvent(productId, eventType, eventHash);
+      await tx.wait();
+      return tx.hash;
+    })(),
+    "addEvent",
+  );
 }
 
 export async function readProductFromChain(
   productId: string,
 ): Promise<ChainProduct> {
-  const [storedProductId, productHash, registeredAt, exists] =
-    await contract().getProduct(productId);
-  return { productId: storedProductId, productHash, registeredAt, exists };
+  return withRpcTimeout(
+    (async () => {
+      const [storedProductId, productHash, registeredAt, exists] =
+        await contract().getProduct(productId);
+      return { productId: storedProductId, productHash, registeredAt, exists };
+    })(),
+    "getProduct",
+  );
 }
 
 export async function readEventsFromChain(
   productId: string,
 ): Promise<ChainEvent[]> {
-  return contract().getEvents(productId);
+  return withRpcTimeout(
+    (async () => contract().getEvents(productId))(),
+    "getEvents",
+  );
 }
 
 export async function closeBlockchain(): Promise<void> {
-  await provider?.destroy();
+  provider?.destroy();
   provider = undefined;
   supplyChain = undefined;
 }

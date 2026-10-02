@@ -4,10 +4,10 @@
   "private": true,
   "type": "commonjs",
   "scripts": {
-    "compile": "HARDHAT_DISABLE_TELEMETRY_PROMPT=true hardhat compile --config hardhat.config.cjs",
-    "test": "HARDHAT_DISABLE_TELEMETRY_PROMPT=true hardhat test --config hardhat.config.cjs",
-    "node": "HARDHAT_DISABLE_TELEMETRY_PROMPT=true hardhat node --config hardhat.config.cjs --hostname 127.0.0.1",
-    "deploy:local": "HARDHAT_DISABLE_TELEMETRY_PROMPT=true hardhat run --config hardhat.config.cjs scripts/deploy.cjs --network localhost"
+    "compile": "node scripts/hardhat.mjs compile --config hardhat.config.cjs",
+    "test": "node scripts/hardhat.mjs test --config hardhat.config.cjs",
+    "node": "node scripts/hardhat.mjs node --config hardhat.config.cjs --hostname 127.0.0.1",
+    "deploy:local": "node scripts/hardhat.mjs run --config hardhat.config.cjs scripts/deploy.cjs --network localhost"
   },
   "devDependencies": {
     "@nomicfoundation/hardhat-chai-matchers": "^2.0.8",

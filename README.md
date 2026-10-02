@@ -19,11 +19,26 @@ A working demonstration of product custody from manufacturer registration throug
 
 | Role | Email | Password |
 | --- | --- | --- |
-| Manufacturer | `manufacturer@demo.com` | `password123` |
-| Distributor | `distributor@demo.com` | `password123` |
-| Retailer | `retailer@demo.com` | `password123` |
+| Manufacturer | `manufacturer@demo.com` | `MANUFACTURER_PASSWORD` |
+| Distributor | `distributor@demo.com` | `DISTRIBUTOR_PASSWORD` |
+| Retailer | `retailer@demo.com` | `RETAILER_PASSWORD` |
 
-These accounts are seeded on API startup for demonstration only. Do not use the demo credentials or local development chain for a production deployment.
+These accounts are seeded on API startup for demonstration only.
+
+**Passwords are read from environment variables, not hard-coded.** Generate one
+per role:
+
+```sh
+node -e "console.log(require('crypto').randomBytes(24).toString('base64url'))"
+```
+
+The API refuses to start outside `NODE_ENV=development` unless all three
+variables are set to values of at least 12 characters, and it warns when the
+same value is reused across roles. A local development default exists only when
+`NODE_ENV=development` is set explicitly.
+
+Do not use the demo credentials or local development chain for a production
+deployment. See [DEPLOYMENT.md](./DEPLOYMENT.md).
 
 ## Run in Replit
 
@@ -83,9 +98,16 @@ The contract source is in `blockchain/contracts/SupplyChain.sol`. It records pro
 
 ```sh
 pnpm run typecheck
-pnpm --filter @workspace/blockchain run compile
-pnpm --filter @workspace/blockchain run test
+pnpm run chain:compile
+pnpm run chain:test
+pnpm --filter @workspace/api-server run test:http
 PORT=20948 BASE_PATH=/ pnpm --filter @workspace/blockchain-supply-chain run build
 ```
+
+`test:http` boots the Express app on a throwaway port and asserts the
+production-relevant HTTP behaviour: the SPA is served, deep links fall back to
+it, Helmet headers are present, CORS allows the server's own origin and refuses
+foreign ones, unknown `/api` paths return JSON, rate-limit headers are emitted,
+and malformed or oversized requests return 400/413.
 
 The Hardhat network and its unlocked accounts are local development tools only. Never use their development keys or send real assets to them.

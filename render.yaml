@@ -1,0 +1,69 @@
+# =============================================================================
+# Render blueprint - single web service for the whole app.
+# =============================================================================
+#
+# Why one service: the frontend calls the API on the same origin using relative
+# `/api/...` URLs, so the compiled React app is served by the same Express
+# process that exposes `/api`. That removes CORS entirely, removes a second
+# service to configure, and keeps the demo on one free instance.
+#
+# IMPORTANT - this file intentionally contains NO secret values. Set every
+# secret in the Render Dashboard under Environment. Render will also read a
+# `.env` file you upload, but never commit one.
+# =============================================================================
+
+services:
+  - type: web
+    name: blockchain-supply-chain
+    runtime: node
+    plan: free
+    region: oregon
+
+    # The repo root, because this is a pnpm workspace with several packages.
+    rootDir: .
+
+    buildCommand: >-
+      pnpm install --frozen-lockfile --prod=false
+      && pnpm run chain:compile
+      && pnpm --filter @workspace/api-server run build
+      && pnpm --filter @workspace/blockchain-supply-chain run build
+
+    startCommand: pnpm start
+
+    healthCheckPath: /api/healthz
+
+    # Free instances are removed after inactivity, so the first request after a
+    # quiet period can take up to ~1 minute to answer while the service spins up.
+    # For a graded demonstration triggered on demand, that cold start is usually
+    # acceptable; open the app once before you present it.
+    autoDeploy: true
+    numRetries: 3
+
+    envVars:
+      # --- values you control; no secrets in this file ---
+      - key: NODE_VERSION
+        value: 24.16.0
+      - key: NODE_ENV
+        value: production
+      - key: LOG_LEVEL
+        value: info
+      - key: BASE_PATH
+        value: /
+      - key: BLOCKCHAIN_ALLOW_LOCAL_CHAIN
+        value: "true"
+
+      # --- secrets: set these in the Render Dashboard, marked Secret ---
+      - key: DATABASE_URL
+        sync: false # paste your PostgreSQL connection string
+      - key: JWT_SECRET
+        generateValue: true # Render generates a strong random value
+      - key: MANUFACTURER_PASSWORD
+        sync: false
+      - key: DISTRIBUTOR_PASSWORD
+        sync: false
+      - key: RETAILER_PASSWORD
+        sync: false
+
+      # --- optional, for a persistent ledger ---
+      # BLOCKCHAIN_RPC_URL / CONTRACT_ADDRESS / PRIVATE_KEY are intentionally
+      # not listed here. See DEPLOYMENT.md -> "Blockchain strategy".

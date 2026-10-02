@@ -1,0 +1,40 @@
+# Normalize line endings in version control.
+#
+# Without this, Windows checkouts convert LF to CRLF and Linux checkouts do the
+# reverse, producing whole-file diffs that obscure real changes. More
+# importantly, a CRLF/UTF-8 BOM combination silently breaks JSON parsers in
+# build tooling (Vite/PostCSS), which is exactly what happened during this
+# project's deployment review.
+
+* text=auto eol=lf
+
+# JSON must never carry a byte-order mark.
+*.json text eol=lf
+*.jsonc text eol=lf
+
+# Source
+*.ts text eol=lf
+*.tsx text eol=lf
+*.mjs text eol=lf
+*.js text eol=lf
+*.cjs text eol=lf
+*.sol text eol=lf
+*.css text eol=lf
+*.html text eol=lf
+*.md text eol=lf
+*.yml text eol=lf
+*.yaml text eol=lf
+*.sql text eol=lf
+
+# Keep local env files out of diffs, but they stay plain text in the editor.
+.env* text eol=lf
+
+# Generated / vendored files: treat as binary so Git never rewrites them.
+blockchain/artifacts/** -text
+blockchain/cache/** -text
+pnpm-lock.yaml text eol=lf
+*.png binary
+*.jpg binary
+*.ico binary
+*.woff binary
+*.woff2 binary

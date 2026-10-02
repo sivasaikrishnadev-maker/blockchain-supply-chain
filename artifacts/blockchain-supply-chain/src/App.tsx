@@ -19,6 +19,7 @@ import {
 import type { Product, ProductInput, User } from '@workspace/api-client-react';
 import { Link, Route, Switch, useLocation, useRoute } from 'wouter';
 import NotFound from '@/pages/not-found';
+import { getVerificationUrl } from '@/lib/public-url';
 
 const queryClient = new QueryClient();
 const TOKEN_KEY = 'chain-ledger-token';
@@ -283,7 +284,7 @@ function ProductContent({user,id}:{user:User;id:string}) {
   const dReceive=useDistributorReceive();const dTransfer=useDistributorTransfer();const rReceive=useRetailerReceive();const available=useMarkProductAvailable();
   const [actionError,setActionError]=useState('');const [copied,setCopied]=useState(false);
   const qrCanvas=useRef<HTMLCanvasElement>(null);
-  const verifyUrl=`${window.location.origin}/verify/${encodeURIComponent(id)}`;
+  const verifyUrl=getVerificationUrl(id);
   const p=product.data?.product;
   const onSuccess=()=>{setActionError('');void client.invalidateQueries({queryKey:getGetProductQueryKey(id)});void client.invalidateQueries({queryKey:getGetProductEventsQueryKey(id)});void client.invalidateQueries({queryKey:getGetProductsQueryKey()});void client.invalidateQueries({queryKey:getGetDashboardStatsQueryKey()});};
   const busy=dReceive.isPending||dTransfer.isPending||rReceive.isPending||available.isPending;

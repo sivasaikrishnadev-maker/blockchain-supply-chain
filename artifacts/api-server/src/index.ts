@@ -3,30 +3,44 @@ import { closeBlockchain, initializeBlockchain } from "./lib/blockchain";
 import { restoreBlockchainState } from "./lib/restore-blockchain-state";
 import { logger } from "./lib/logger";
 import { seedDemoUsers } from "./lib/seed";
-import { pool } from "@workspace/db";
+import { ensureSchema, pool } from "@workspace/db";
 
+/**
+ * Resolve the listening port.
+ *
+ * Hosting platforms (Render, Replit, Fly, Heroku) inject `PORT`, so it is used
+ * when present. The 5000 fallback only applies when the variable is absent
+ * entirely, which keeps `node dist/index.mjs` usable on a laptop.
+ */
 const rawPort = process.env["PORT"];
+const port = rawPort ? Number(rawPort) : 5000;
 
-if (!rawPort) {
+if (!Number.isInteger(port) || port <= 0 || port > 65535) {
   throw new Error(
-    "PORT environment variable is required but was not provided.",
+    rawPort ? `Invalid PORT value: "${rawPort}"` : "PORT must be a valid TCP port.",
   );
 }
 
-const port = Number(rawPort);
+/** Bind on every interface. Containers must listen on 0.0.0.0 to be reachable. */
+const host = process.env["HOST"] ?? "0.0.0.0";
 
-if (Number.isNaN(port) || port <= 0) {
-  throw new Error(`Invalid PORT value: "${rawPort}"`);
-}
+/** Health checks and rate limiting must see the real client IP behind a proxy. */
+app.set("trust proxy", 1);
 
 async function start(): Promise<void> {
+  // Order matters: the database must be reachable and provisioned before the
+  // chain is touched, because restoring ledger state writes to both.
+  await ensureSchema();
+  logger.info("Database schema is present");
+
   const deployedHere = await initializeBlockchain();
   await seedDemoUsers();
   if (deployedHere) {
     await restoreBlockchainState();
   }
-  const server = app.listen(port, () => {
-    logger.info({ port }, "Server listening");
+
+  const server = app.listen(port, host, () => {
+    logger.info({ port, host }, "Server listening");
   });
 
   const shutdown = async (): Promise<void> => {

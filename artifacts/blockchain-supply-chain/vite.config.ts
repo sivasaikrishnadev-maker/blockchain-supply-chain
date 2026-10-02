@@ -5,27 +5,25 @@ import { defineConfig } from 'vite';
 
 import runtimeErrorOverlay from '@replit/vite-plugin-runtime-error-modal';
 
-const rawPort = process.env.PORT;
-
-if (!rawPort) {
-  throw new Error(
-    'PORT environment variable is required but was not provided.',
-  );
-}
-
+/**
+ * `PORT` is only needed by the dev server and `vite preview`. The original
+ * config threw when it was missing, which made `vite build` fail on any host
+ * that does not inject a port (including the Render build step). A default is
+ * used instead and an invalid value is still rejected.
+ */
+const rawPort = process.env.PORT ?? '5173';
 const port = Number(rawPort);
 
-if (Number.isNaN(port) || port <= 0) {
+if (!Number.isInteger(port) || port <= 0 || port > 65535) {
   throw new Error(`Invalid PORT value: "${rawPort}"`);
 }
 
-const basePath = process.env.BASE_PATH;
-
-if (!basePath) {
-  throw new Error(
-    'BASE_PATH environment variable is required but was not provided.',
-  );
-}
+/**
+ * `BASE_PATH` is Vite's public base path. It must be `/` when the built assets
+ * are served from the domain root. Defaulting to `/` keeps the production build
+ * self-contained; a non-root deployment can still override it.
+ */
+const basePath = process.env.BASE_PATH ?? '/';
 
 export default defineConfig({
   base: basePath,
@@ -63,6 +61,8 @@ export default defineConfig({
   build: {
     outDir: path.resolve(import.meta.dirname, 'dist/public'),
     emptyOutDir: true,
+    // Report oversized chunks so a build failure is visible rather than silent.
+    chunkSizeWarningLimit: 1500,
   },
   server: {
     port,
